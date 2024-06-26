@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Location Sharing App</title>
+  <style>
+    /* Add your CSS styles here */
+  </style>
+</head>
+<body>
+  <h1>Location Sharing App</h1>
+  
+  <button onclick="getLocation()">Get My Location</button>
+  <div id="location"></div>
+  
+  <h2>Saved Locations:</h2>
+  <ul id="savedLocations"></ul>
+  
+  <button onclick="refreshLocations()">Refresh Locations</button>
+
+  <script>
+    const serverURL = 'https://allyna-database.000webhostapp.com/';
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(saveLocation);
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+
+    function saveLocation(position) {
+      const { latitude, longitude } = position.coords;
+      const timestamp = new Date().toLocaleString();
+      const ip = ''; // Replace with logic to fetch IP if needed
+
+      // Send location data to PHP script using AJAX
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (this.readyState === 4) {
+          if (this.status === 200) {
+            console.log("Location saved successfully");
+            displayLocations(); // Update UI to display saved locations
+          } else {
+            console.error("Error saving location:", this.status, this.statusText);
+          }
+        }
+      };
+      xhr.open("POST", serverURL + "save_location.php", true);
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      xhr.send(`latitude=${latitude}&longitude=${longitude}&timestamp=${timestamp}&ip=${ip}`);
+    }
+
+    function displayLocations() {
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (this.readyState === 4) {
+          if (this.status === 200) {
+            const savedLocations = JSON.parse(this.responseText);
+            const savedLocationsList = document.getElementById('savedLocations');
+            savedLocationsList.innerHTML = '';
+
+            savedLocations.forEach(location => {
+              const li = document.createElement('li');
+              li.textContent = `${location.timestamp}: Latitude ${location.latitude}, Longitude ${location.longitude}`;
+
+              const viewButton = document.createElement('button');
+              viewButton.textContent = 'View on Map';
+              viewButton.addEventListener('click', () => {
+                showOnMap(location.latitude, location.longitude);
+              });
+
+              li.appendChild(viewButton);
+              savedLocationsList.appendChild(li);
+            });
+          } else {
+            console.error("Error fetching locations:", this.status, this.statusText);
+          }
+        }
+      };
+      xhr.open("GET", serverURL + "get_locations.php", true);
+      xhr.send();
+    }
+
+    function refreshLocations() {
+      displayLocations(); // Simply call displayLocations() to refresh the list
+    }
+
+    function showOnMap(latitude, longitude) {
+      // Placeholder function to show location on map (replace with actual implementation)
+      alert(`Showing location: Latitude ${latitude}, Longitude ${longitude}`);
+    }
+
+    // Display saved locations on page load
+    window.onload = function() {
+      displayLocations();
+    };
+  </script>
+</body>
+</html>
